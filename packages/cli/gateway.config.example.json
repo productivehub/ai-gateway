@@ -1,0 +1,15 @@
+{
+  "port": 8787,
+  "hostname": "127.0.0.1",
+  "defaultKey": "claude-work",
+  "defaultDialect": "bridge",
+  "keys": {
+    "claude-work": { "provider": "anthropic", "apiKeyEnv": "ANTHROPIC_WORK_API_KEY" },
+    "claude-personal": { "provider": "anthropic", "apiKeyEnv": "ANTHROPIC_PERSONAL_API_KEY" },
+    "cloud": { "provider": "ollama-cloud", "apiKeyEnv": "OLLAMA_CLOUD_API_KEY" }
+  },
+  "models": {
+    "writer": { "key": "claude-work", "model": "your-claude-model-id" },
+    "coder": { "key": "cloud", "model": "your-cloud-model-id" }
+  }
+}

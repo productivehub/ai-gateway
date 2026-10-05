@@ -1,0 +1,69 @@
+{
+  "name": "@productivehub/ai-gateway-api",
+  "version": "0.1.0",
+  "description": "AI gateway: mountable HTTP API and standalone Node/Deno listener over @productivehub/ai-bridge",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "author": {
+    "name": "Segev Shmueli",
+    "url": "https://github.com/segevsh"
+  },
+  "contributors": [
+    {
+      "name": "productiveHub",
+      "url": "https://github.com/productivehub"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/productivehub/ai-gateway.git",
+    "directory": "packages/api"
+  },
+  "homepage": "https://github.com/productivehub/ai-gateway/tree/main/packages/api#readme",
+  "bugs": {
+    "url": "https://github.com/productivehub/ai-gateway/issues"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./listener": {
+      "types": "./dist/listener.d.ts",
+      "import": "./dist/listener.js"
+    }
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "dist/**/*.map",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "typecheck": "tsc -b tsconfig.json && tsc -p tsconfig.test.json",
+    "test": "vitest run",
+    "test:runtime": "node test/runtime-smoke.ts",
+    "lint": "echo \"lint: not configured yet\""
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.0",
+    "@productivehub/ai-bridge": "workspace:*",
+    "hono": "^4.13.0",
+    "zod": "^4.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^5.0.0"
+  }
+}

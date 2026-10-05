@@ -1,0 +1,70 @@
+{
+  "name": "@productivehub/ai-gateway-cli",
+  "version": "0.1.0",
+  "description": "ai-gateway command line: completions, model and account discovery, and the HTTP server",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "author": {
+    "name": "Segev Shmueli",
+    "url": "https://github.com/segevsh"
+  },
+  "contributors": [
+    {
+      "name": "productiveHub",
+      "url": "https://github.com/productivehub"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/productivehub/ai-gateway.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/productivehub/ai-gateway/tree/main/packages/cli#readme",
+  "bugs": {
+    "url": "https://github.com/productivehub/ai-gateway/issues"
+  },
+  "type": "module",
+  "main": "./dist/cli.js",
+  "types": "./dist/cli.d.ts",
+  "bin": {
+    "ai-gateway": "./dist/bin.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/cli.d.ts",
+      "import": "./dist/cli.js"
+    }
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "dist/**/*.map",
+    "README.md",
+    "LICENSE",
+    "deno.json",
+    ".env.example",
+    "gateway.config.example.json"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "typecheck": "tsc -b tsconfig.json && tsc -p tsconfig.test.json",
+    "test": "vitest run",
+    "start": "node --env-file-if-exists=.env dist/bin.js serve",
+    "cli": "node --env-file-if-exists=.env dist/bin.js",
+    "lint": "echo \"lint: not configured yet\""
+  },
+  "dependencies": {
+    "@productivehub/ai-bridge": "workspace:*",
+    "@productivehub/ai-gateway-api": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^5.0.0"
+  }
+}

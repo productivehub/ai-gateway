@@ -1,0 +1,7 @@
+{
+  "nodeModulesDir": "manual",
+  "tasks": {
+    "start": "deno run --allow-net --allow-env --allow-read --env-file=.env dist/bin.js serve",
+    "cli": "deno run --allow-net --allow-env --allow-read --env-file=.env dist/bin.js"
+  }
+}
