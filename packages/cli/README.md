@@ -5,9 +5,10 @@
 maintained by [Segev Shmueli](https://github.com/segevsh) for
 [productiveHub](https://github.com/productivehub).
 
-Run completions, list models and accounts, or start the HTTP server from a
-terminal. The CLI is a client of the [AI gateway API](../api/README.md) contract: it
-calls the API in-process, or a running server with `--url`.
+Run completions, list models and accounts, read an account's remaining allowance, or
+start the HTTP server from a terminal. The CLI is a client of the
+[AI gateway API](../api/README.md) contract: it calls the API in-process, or a
+running server with `--url`.
 
 ## Usage
 
@@ -19,6 +20,8 @@ ai-gateway complete coder --input request.json --json               # full Bridg
 ai-gateway models --key cloud          # provider catalog, one model ID per line
 ai-gateway models --configured         # alias, key, provider, native model
 ai-gateway keys                        # account, provider, base URL
+ai-gateway allowance --key cloud       # remaining quota and usage rows
+ai-gateway allowance --provider ollama-cloud --json   # full allowance body
 ai-gateway serve --port 8787           # same as `pnpm start`
 ```
 
@@ -37,6 +40,13 @@ For the `bridge` dialect it prints the reply text; for other dialects it prints 
 tab-separated, or JSON with `--json`. Exit codes are `0` on success, `1` for a
 request or provider error and `2` for a usage error; errors go to stderr.
 
+`allowance` prints the selected account's quota as tab-separated rows: an
+`available` row when the provider reports one, then one row per window (`id`,
+`kind`, remaining and limit amounts, remaining percent, reset time) and finally the
+`usage` period (`from`, `until`, requests, cost) when the provider reports one.
+`--json` prints the whole response body instead. A provider that cannot report an
+allowance exits `1` with the HTTP 501 message.
+
 Hosts can embed the same runner: `import { runCli } from "@productivehub/ai-gateway-cli"`
 resolves to the exit code and accepts injected stdio, environment, `fetch` or app.
 
@@ -53,8 +63,8 @@ and `.env.example` to `.env`, then replace the placeholder model IDs.
 | `AI_GATEWAY_PORT` | `serve --port` | 8787 |
 | `AI_GATEWAY_HOSTNAME` | `serve --hostname` | 127.0.0.1 |
 
-Provider credentials (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `OLLAMA_BASE_URL`, ...)
-and the other `AI_GATEWAY_*` settings are documented in the
+Provider credentials (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`,
+`OLLAMA_BASE_URL`, ...) and the other `AI_GATEWAY_*` settings are documented in the
 [API configuration](../api/README.md#configuration).
 
 ## Run from a checkout

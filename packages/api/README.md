@@ -82,6 +82,40 @@ on this endpoint. Discovery reports the provider's catalog without filtering to
 chat-compatible models. `POST /models` still runs a completion for a model whose
 ID is literally `models`.
 
+### Remaining allowance
+
+```sh
+curl 'http://127.0.0.1:8787/allowance?key=cloud'
+# On the director API:
+curl 'http://localhost:3000/api/ai/allowance?key=cloud'
+```
+
+`GET /allowance` invokes `bridge.getAllowance({ provider })` for the selected
+account. It returns the provider's canonical quota plus the gateway `key`,
+`provider` and request timing `meta`:
+
+```json
+{
+  "provider": "ollama-cloud",
+  "key": "cloud",
+  "available": null,
+  "primary": { "id": "included", "kind": "plan", "remainingFraction": 0.42, "period": { "resetsAt": "2026-10-15T00:00:00.000Z" } },
+  "windows": [{ "id": "included", "kind": "plan", "remainingFraction": 0.42, "...": "one entry per quota bucket" }],
+  "usage": { "from": "2026-10-01", "until": "2026-10-08", "requests": 12, "cost": { "amount": 50, "currency": "USD" } },
+  "raw": { "...": "native provider payload" },
+  "meta": { "startedAt": "2026-10-04T10:00:00.000Z", "endedAt": "2026-10-04T10:00:00.100Z", "durationMs": 100 }
+}
+```
+
+A `windows` entry is a quota bucket: `id` and `kind` (`money` or `plan`), optional
+`label`, `limit`, `remaining` and `used` amounts, a `remainingFraction` in 0..1
+(`null` when the provider reports no ceiling), an optional `period` and the native
+payload. `available` is the provider's own verdict or `null`; `primary` is the
+window that gates calls. Adapters without allowance support return HTTP 501 with
+the bridge's `UnsupportedFeatureError` message. Like `/models`, this endpoint
+returns canonical data, so `dialect` is rejected with HTTP 400. Upstream provider
+failures keep the shared 502 mapping and their bodies are never echoed.
+
 ## Create an app or listener
 
 ```ts
@@ -109,10 +143,12 @@ Creating or importing the app never opens a socket. The listener uses native
 `Deno.serve` on Deno and `@hono/node-server` on Node. Port `0` selects an available
 port; `close()` waits for shutdown and can be called repeatedly.
 
-`createDefaultGateway()` wires configured `openai`, `anthropic`, `ollama`, and
-`ollama-cloud` accounts and the `openai`, `anthropic`, and `ollama` response dialects.
-Without JSON config, hosted providers are enabled only with a nonempty API key;
-local Ollama requires `OLLAMA_BASE_URL` or an explicit `providers.ollama.baseURL`.
+`createDefaultGateway()` wires configured `openai`, `anthropic`, `deepseek`,
+`ollama`, and `ollama-cloud` accounts and the `openai`, `anthropic`, and `ollama`
+response dialects. Without JSON config, hosted providers are enabled only with a
+nonempty API key (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`,
+`OLLAMA_CLOUD_API_KEY`); local Ollama requires `OLLAMA_BASE_URL` or an explicit
+`providers.ollama.baseURL`.
 Credentials and endpoints are captured at startup; SDK clients initialize on first
 use. A sole account is selected automatically. With multiple accounts, select a
 key/provider per request or configure a default. With no accounts, `/health` works,
@@ -192,13 +228,33 @@ Public discovery endpoints:
 
 - `GET /keys`: `{ keys: [{ name, provider, baseURL, endpoints }] }`. Only public
   account metadata is serialized; API keys and environment references are excluded.
+  `endpoints` names the provider routes the gateway knows, including `allowance`
+  for accounts that can report one.
 - `GET /models/configured`: configured aliases, native model IDs, named keys and providers.
 - `GET /models?key=claude-work`: provider model discovery using that account.
+- `GET /allowance?key=cloud`: the account's remaining quota and consumed usage.
 
 Director exposes these under `/api/ai`. JSON provider names remain extensible:
 pass `providerFactories` to the factory/listener for custom implementations,
 default endpoints and connection requirements. The bridge's injectable core and
 custom dialects remain available through `createGateway`.
+
+### Merging a host's own keys
+
+A host that stores its own keys can build on the environment-derived config:
+
+- `listGatewayProviders(factories?)`: the provider catalog, one
+  `{ id, defaultBaseURL, requiresApiKey, endpoints }` entry per provider
+  (`GatewayProviderInfo`). Custom `factories` override or extend the built-ins.
+- `resolveDefaultGatewayConfig({ env, providers? })`: the `GatewayConfig`
+  `createDefaultGateway` builds when given no `config`, as a plain value to merge into.
+- `isGatewayKeyName(value)` and `isGatewayBaseURL(value)`: the same checks the
+  config schema applies to account names and endpoint URLs.
+
+A key may set `inheritEnv: false` to read no provider environment variable: no
+`apiKeyEnv`/`baseURLEnv` defaults and no `OLLAMA_API_KEY` fallback. Its provider is
+built from the key's own `apiKey` and `baseURL` only (a missing `baseURL` falls back
+to the provider's default). It cannot be combined with `apiKeyEnv` or `baseURLEnv`.
 
 ## Mount in an existing server
 
@@ -254,6 +310,7 @@ Errors return `{ "error": "message" }`:
 | 415 | Unsupported content type |
 | 422 | Provider cannot support a requested canonical feature |
 | 429 | Upstream rate limit |
+| 501 | Account's provider cannot report an allowance |
 | 502 | Provider request failed |
 | 504 | Provider timeout |
 

@@ -77,6 +77,59 @@ describe("discovery", () => {
   });
 });
 
+describe("allowance", () => {
+  const body = {
+    provider: "deepseek", key: "k", available: true,
+    primary: { id: "balance", kind: "money" },
+    windows: [
+      {
+        id: "balance", kind: "money", remaining: { amount: 1234, currency: "USD" },
+        limit: { amount: 5000, currency: "USD" }, remainingFraction: 0.25, period: { resetsAt: "2026-11-01T00:00:00.000Z" },
+      },
+      { id: "included", kind: "plan", remainingFraction: 0.42, period: { until: "2026-10-15T00:00:00.000Z" } },
+    ],
+    usage: { from: "2026-10-01", until: "2026-10-08", requests: 12, cost: { amount: 50, currency: "USD" } },
+    raw: { native: true }, meta: { startedAt: "2026-10-08T00:00:00.000Z", durationMs: 3 },
+  };
+  const stub = () => vi.fn(async (...args: unknown[]) => { void args; return Response.json(body); });
+  const asFetch = (mock: ReturnType<typeof stub>) => mock as unknown as typeof globalThis.fetch;
+
+  it("prints availability, one row per window and the usage line", async () => {
+    const fetch = stub();
+    const { code, stdout } = await run(["allowance", "--key", "k", "--url", "http://host:3000/api/ai"], { fetch: asFetch(fetch) });
+    expect(code).toBe(0);
+    expect(String(fetch.mock.calls[0]?.[0])).toBe("http://host:3000/api/ai/allowance?key=k");
+    expect(stdout).toBe([
+      "available\ttrue",
+      "balance\tmoney\t12.34 USD\t50.00 USD\t25%\t2026-11-01T00:00:00.000Z",
+      "included\tplan\t-\t-\t42%\t2026-10-15T00:00:00.000Z",
+      "usage\t2026-10-01\t2026-10-08\t12\t0.50 USD",
+      "",
+    ].join("\n"));
+  });
+
+  it("prints the response body as JSON", async () => {
+    const { code, stdout } = await run(["allowance", "--provider", "deepseek", "--json", "--url", "http://host"], { fetch: asFetch(stub()) });
+    expect(code).toBe(0);
+    expect(JSON.parse(stdout)).toEqual(body);
+  });
+
+  it("omits a null availability flag and renders unknown values as dashes", async () => {
+    const fetch = vi.fn(async () => Response.json({
+      ...body, available: null, windows: [{ id: "balance", kind: "money", remainingFraction: null }],
+      usage: { from: "2026-10-01", until: "2026-10-08" },
+    }));
+    const { stdout } = await run(["allowance", "--url", "http://host"], { fetch: asFetch(fetch) });
+    expect(stdout).toBe("balance\tmoney\t-\t-\t-\t-\nusage\t2026-10-01\t2026-10-08\t-\t-\n");
+  });
+
+  it("exits with the HTTP-error path when the provider has no allowance", async () => {
+    const { code, stderr } = await run(["allowance", "--key", "test"]);
+    expect(code).toBe(1);
+    expect(stderr).toBe("ai-gateway: Cannot convert allowance to test (HTTP 501)\n");
+  });
+});
+
 describe("remote", () => {
   it("sends the same requests to --url with the injected fetch", async () => {
     const fetch = vi.fn(async () => Response.json({ keys: [{ name: "work", provider: "anthropic", endpoints: {} }] }));
@@ -111,6 +164,7 @@ describe("serve", () => {
 
 it("prints help and rejects unknown commands", async () => {
   expect(await run(["--help"])).toMatchObject({ code: 0, stdout: expect.stringContaining("Usage: ai-gateway") });
+  expect((await run(["--help"])).stdout).toContain("allowance  ");
   expect(await run([])).toMatchObject({ code: 2 });
   expect(await run(["launch"])).toMatchObject({ code: 2, stderr: expect.stringContaining('Unknown command "launch"') });
 });

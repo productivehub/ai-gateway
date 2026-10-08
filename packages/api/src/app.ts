@@ -2,7 +2,7 @@ import { env as processEnv } from "node:process";
 import { Hono } from "hono";
 import {
   UnsupportedFeatureError, UnknownDialectError, UnknownProviderError,
-  type DialectRegistry, type ProviderRegistry, type Bridge, type BridgeResponse, type BridgeInput,
+  type DialectRegistry, type ProviderRegistry, type Bridge, type BridgeResponse, type BridgeInput, type BridgeAllowanceResponse,
 } from "@productivehub/ai-bridge";
 import { bridgeInputSchema } from "./schema.js";
 import type { GatewayKeyInfo, GatewayModelRoute } from "./config.js";
@@ -21,6 +21,9 @@ export interface GatewayOptions<P extends ProviderRegistry = ProviderRegistry, D
   onError?: (error: Error) => void;
 }
 
+/** Serialized BridgeAllowanceResponse with the gateway key that was queried. */
+export type GatewayAllowanceResponse = BridgeAllowanceResponse & { key: string };
+
 /** Serialized BridgeResponse: output follows dialect, usage remains canonical. */
 export interface GatewayResponse<Output = unknown> {
   provider: string;
@@ -33,7 +36,7 @@ export interface GatewayResponse<Output = unknown> {
   meta: BridgeResponse["meta"];
 }
 
-type ErrorStatus = 400 | 406 | 413 | 415 | 422 | 429 | 500 | 502 | 504;
+type ErrorStatus = 400 | 406 | 413 | 415 | 422 | 429 | 500 | 501 | 502 | 504;
 class ApiError extends Error {
   constructor(readonly status: ErrorStatus, message: string) { super(message); }
 }
@@ -132,6 +135,20 @@ export function createGateway<const P extends ProviderRegistry, const D extends 
     if (query.has("dialect")) throw new ApiError(400, "Model discovery returns canonical metadata; dialect selects completion output only");
     const catalog = await bridge.listModels({ provider: key.name as keyof P & string });
     return c.json({ ...catalog, key: key.name, provider: key.provider });
+  });
+  app.get("/allowance", async (c) => {
+    const query = new URL(c.req.url).searchParams;
+    const key = chooseKey(query);
+    if (query.has("dialect")) throw new ApiError(400, "Allowance returns canonical data; dialect selects completion output only");
+    try {
+      const allowance = await bridge.getAllowance({ provider: key.name as keyof P & string });
+      const body: GatewayAllowanceResponse = { ...allowance, key: key.name, provider: key.provider };
+      return c.json(body);
+    } catch (error) {
+      // Route-local: the global handler maps UnsupportedFeatureError to 422 for the completion path.
+      if (error instanceof UnsupportedFeatureError) throw new ApiError(501, error.message);
+      throw error;
+    }
   });
   app.post("/:model{.+}", async (c) => {
     const query = new URL(c.req.url).searchParams;
