@@ -239,6 +239,23 @@ pass `providerFactories` to the factory/listener for custom implementations,
 default endpoints and connection requirements. The bridge's injectable core and
 custom dialects remain available through `createGateway`.
 
+### Merging a host's own keys
+
+A host that stores its own keys can build on the environment-derived config:
+
+- `listGatewayProviders(factories?)`: the provider catalog, one
+  `{ id, defaultBaseURL, requiresApiKey, endpoints }` entry per provider
+  (`GatewayProviderInfo`). Custom `factories` override or extend the built-ins.
+- `resolveDefaultGatewayConfig({ env, providers? })`: the `GatewayConfig`
+  `createDefaultGateway` builds when given no `config`, as a plain value to merge into.
+- `isGatewayKeyName(value)` and `isGatewayBaseURL(value)`: the same checks the
+  config schema applies to account names and endpoint URLs.
+
+A key may set `inheritEnv: false` to read no provider environment variable: no
+`apiKeyEnv`/`baseURLEnv` defaults and no `OLLAMA_API_KEY` fallback. Its provider is
+built from the key's own `apiKey` and `baseURL` only (a missing `baseURL` falls back
+to the provider's default). It cannot be combined with `apiKeyEnv` or `baseURLEnv`.
+
 ## Mount in an existing server
 
 ```ts
