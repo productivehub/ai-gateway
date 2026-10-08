@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AnthropicProvider, type ProviderConfig, type ProviderRequest } from "@productivehub/ai-bridge";
 import { Hono } from "hono";
+import { buildConfiguredProviders } from "../src/config.js";
 import { createDefaultGateway, parseGatewayConfig, type GatewayConfig } from "../src/index.js";
 import { listenGateway } from "../src/listener.js";
 import { post } from "./helpers.js";
@@ -46,7 +47,7 @@ describe("JSON startup configuration", () => {
     expect(JSON.parse(text)).toEqual({ keys: [
       { name: "claude-work", provider: "anthropic", baseURL: "http://work.test", endpoints: { complete: "http://work.test/v1/messages", models: "http://work.test/v1/models" } },
       { name: "claude-personal", provider: "anthropic", baseURL: "http://personal.test", endpoints: { complete: "http://personal.test/v1/messages", models: "http://personal.test/v1/models" } },
-      { name: "cloud", provider: "ollama-cloud", baseURL: "https://ollama.com", endpoints: { complete: "https://ollama.com/api/chat", models: "https://ollama.com/api/tags" } },
+      { name: "cloud", provider: "ollama-cloud", baseURL: "https://ollama.com", endpoints: { complete: "https://ollama.com/api/chat", models: "https://ollama.com/api/tags", allowance: "https://ollama.com/api/balance" } },
     ] });
     expect(calls).toHaveLength(0);
   });
@@ -130,6 +131,27 @@ describe("JSON startup configuration", () => {
       const response = await fetch(`${listener.url}/keys`);
       expect(await response.json()).toMatchObject({ keys: [{ name: "cloud", provider: "ollama-cloud" }] });
     } finally { await listener.close(); }
+  });
+});
+
+describe("allowance endpoints and the deepseek factory", () => {
+  it("advertises allowance only for deepseek and ollama-cloud", () => {
+    const { keys } = buildConfiguredProviders({ keys: {
+      ds: { provider: "deepseek", apiKey: "k" }, cloud: { provider: "ollama-cloud", apiKey: "k" },
+      oa: { provider: "openai", apiKey: "k" }, an: { provider: "anthropic", apiKey: "k" }, local: { provider: "ollama", baseURL: "http://local.test" },
+    } }, { env: {} });
+    const byName = Object.fromEntries(keys.map((key) => [key.name, key.endpoints]));
+    expect(byName.ds).toEqual({ complete: "https://api.deepseek.com/chat/completions", models: "https://api.deepseek.com/models", allowance: "https://api.deepseek.com/user/balance" });
+    expect(byName.cloud?.allowance).toBe("https://ollama.com/api/balance");
+    for (const name of ["oa", "an", "local"]) expect(byName[name]).not.toHaveProperty("allowance");
+  });
+
+  it("registers deepseek from the environment and requires its key in config", async () => {
+    const app = createDefaultGateway({ env: { DEEPSEEK_API_KEY: "ds-secret" } });
+    const list = await (await app.request("/keys")).json();
+    expect(list).toMatchObject({ keys: [{ name: "deepseek", provider: "deepseek", endpoints: { allowance: "https://api.deepseek.com/user/balance" } }] });
+    expect(JSON.stringify(list)).not.toContain("ds-secret");
+    expect(() => createDefaultGateway({ config: { keys: { ds: { provider: "deepseek" } } }, env: {} })).toThrow("requires a configured API key");
   });
 });
 
