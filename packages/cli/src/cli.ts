@@ -2,10 +2,11 @@
 import { readFile } from "node:fs/promises";
 import process from "node:process";
 import { parseArgs, type ParseArgsConfig } from "node:util";
-import type { ContentBlock, BridgeInput, BridgeModelsResponse } from "@productivehub/ai-bridge";
+import type { BridgeCost, ContentBlock, BridgeInput, BridgeModelsResponse } from "@productivehub/ai-bridge";
 import {
   createDefaultGateway, loadGatewayConfig,
   type Environment, type GatewayConfig, type GatewayResponse, type GatewayKeyInfo, type GatewayModelRoute,
+  type GatewayAllowanceResponse,
 } from "@productivehub/ai-gateway-api";
 import { listenGateway, type FetchApp, type GatewayListener } from "@productivehub/ai-gateway-api/listener";
 
@@ -29,6 +30,7 @@ Commands:
   serve                       Start the HTTP API on Node or Deno
   complete <model> [prompt]   Run one completion; the prompt is read from stdin when omitted
   models                      List the provider's model catalog
+  allowance                   Show the account's remaining allowance and usage
   keys                        List configured accounts
 
 Global options:
@@ -40,6 +42,7 @@ serve:     --port <n>  --hostname <host>
 complete:  --key <name>  --provider <name>  --dialect <name>  -s, --system <text>
            --max-tokens <n>  --temperature <n>  --input <file|->  --json
 models:    --key <name>  --provider <name>  --configured  --json
+allowance: --key <name>  --provider <name>  --json
 keys:      --json
 
 complete prints the reply text for the bridge dialect and the output JSON for any
@@ -61,11 +64,12 @@ const commandOptions = {
     "max-tokens": { type: "string" }, temperature: { type: "string" }, input: { type: "string" }, json: { type: "boolean" },
   },
   models: { ...selection, configured: { type: "boolean" }, json: { type: "boolean" } },
+  allowance: { ...selection, json: { type: "boolean" } },
   keys: { json: { type: "boolean" } },
 } satisfies Record<string, ParseArgsConfig["options"]>;
 type Command = keyof typeof commandOptions;
 
-const allOptions = { ...globalOptions, ...commandOptions.serve, ...commandOptions.complete, ...commandOptions.models, ...commandOptions.keys };
+const allOptions = { ...globalOptions, ...commandOptions.serve, ...commandOptions.complete, ...commandOptions.models, ...commandOptions.allowance, ...commandOptions.keys };
 
 /** One parse over every option keeps the values typed; per-command validity is checked after. */
 function parse(command: Command, args: string[]) {
@@ -106,6 +110,27 @@ function replyText(response: GatewayResponse): string | undefined {
   if (typeof content === "string") return content;
   const texts = content?.flatMap((block) => block.type === "text" ? [block.text] : []);
   return texts?.length ? texts.join("") : undefined;
+}
+
+function money(cost: BridgeCost | undefined): string {
+  return cost ? `${(cost.amount / 100).toFixed(2)} ${cost.currency}` : "-";
+}
+
+function pct(fraction: number | null): string {
+  return fraction === null ? "-" : `${Math.round(fraction * 100)}%`;
+}
+
+/** One tab-separated row per allowance window, then the usage line when the provider reports one. */
+function allowanceRows(allowance: GatewayAllowanceResponse): string[] {
+  const rows: string[] = [];
+  if (allowance.available !== null) rows.push(["available", String(allowance.available)].join("\t"));
+  for (const window of allowance.windows) rows.push([
+    window.id, window.kind, money(window.remaining), money(window.limit), pct(window.remainingFraction),
+    window.period?.resetsAt ?? window.period?.until ?? "-",
+  ].join("\t"));
+  const usage = allowance.usage;
+  if (usage) rows.push(["usage", usage.from, usage.until, usage.requests ?? "-", money(usage.cost)].join("\t"));
+  return rows;
 }
 
 /** Runs one command and resolves to a process exit code: 0 success, 1 request failure, 2 usage error. */
@@ -198,6 +223,14 @@ export async function runCli(argv: readonly string[], io: CliIO = {}): Promise<n
       const catalog = await send<BridgeModelsResponse & { key: string }>(`/models${query({ key: options.key, provider: options.provider })}`);
       if (options.json) printJson(catalog);
       else for (const model of catalog.models) print(model.id);
+      return 0;
+    }
+
+    if (command === "allowance") {
+      if (positionals.length) throw new UsageError("allowance takes no arguments");
+      const allowance = await send<GatewayAllowanceResponse>(`/allowance${query({ key: options.key, provider: options.provider })}`);
+      if (options.json) printJson(allowance);
+      else for (const row of allowanceRows(allowance)) print(row);
       return 0;
     }
 
