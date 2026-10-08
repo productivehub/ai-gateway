@@ -64,8 +64,7 @@ and `.env.example` to `.env`, then replace the placeholder model IDs.
 | `AI_GATEWAY_HOSTNAME` | `serve --hostname` | 127.0.0.1 |
 
 Provider credentials (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`,
-`OLLAMA_BASE_URL`, ...)
-and the other `AI_GATEWAY_*` settings are documented in the
+`OLLAMA_BASE_URL`, ...) and the other `AI_GATEWAY_*` settings are documented in the
 [API configuration](../api/README.md#configuration).
 
 ## Run from a checkout
