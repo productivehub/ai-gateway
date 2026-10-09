@@ -47,6 +47,17 @@ describe("complete", () => {
     expect(JSON.parse(envelope.stdout)).toMatchObject({ key: "second", model: "native-writer", dialect: "bridge", usage: { totalTokens: 5 } });
   });
 
+  it("prints raw-only JSON and omits raw in output-only envelopes", async () => {
+    const raw = await run(["complete", "model", "hi", "--dialect", "structured", "--response", "raw"]);
+    expect(raw.code).toBe(0);
+    expect(JSON.parse(raw.stdout)).toEqual({ native: true });
+    const output = await run(["complete", "model", "hi", "--dialect", "mine", "--response", "output", "--json"]);
+    expect(output.code).toBe(0);
+    expect(JSON.parse(output.stdout)).toMatchObject({ output: { answer: "Hello back" } });
+    expect(JSON.parse(output.stdout)).not.toHaveProperty("raw");
+    expect(await run(["complete", "model", "hi", "--response", "invalid"])).toMatchObject({ code: 2 });
+  });
+
   it("sends BridgeInput from a file", async () => {
     const dir = await mkdtemp(join(tmpdir(), "ai-gateway-"));
     const file = join(dir, "input.json");

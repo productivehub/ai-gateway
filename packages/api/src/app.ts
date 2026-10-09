@@ -2,7 +2,7 @@ import { env as processEnv } from "node:process";
 import { Hono } from "hono";
 import {
   UnsupportedFeatureError, UnknownDialectError, UnknownProviderError,
-  type DialectRegistry, type ProviderRegistry, type Bridge, type BridgeResponse, type BridgeInput, type BridgeAllowanceResponse,
+  type DialectRegistry, type ProviderRegistry, type Bridge, type BridgeResponse, type BridgeInput, type BridgeAllowanceResponse, type ResponseMode,
 } from "@productivehub/ai-bridge";
 import { bridgeInputSchema } from "./schema.js";
 import type { GatewayKeyInfo, GatewayModelRoute } from "./config.js";
@@ -25,15 +25,27 @@ export interface GatewayOptions<P extends ProviderRegistry = ProviderRegistry, D
 export type GatewayAllowanceResponse = BridgeAllowanceResponse & { key: string };
 
 /** Serialized BridgeResponse: output follows dialect, usage remains canonical. */
-export interface GatewayResponse<Output = unknown> {
+export interface GatewayResponse<Output = unknown, Raw = unknown> {
   provider: string;
   key: string;
   model: string;
   dialect: string;
   output: Output;
   usage: BridgeResponse["usage"];
-  raw: unknown;
+  raw: Raw;
   meta: BridgeResponse["meta"];
+}
+
+export type GatewayOutputResponse<Output = unknown> = Omit<GatewayResponse<Output>, "raw">;
+export type GatewayResult<Output = unknown, Raw = unknown, Mode extends ResponseMode = "both"> =
+  Mode extends "raw" ? Raw : Mode extends "output" ? GatewayOutputResponse<Output> : GatewayResponse<Output, Raw>;
+
+export type GatewayCompletionMetadata = Pick<GatewayResponse, "provider" | "key" | "model" | "usage" | "meta">;
+const completionMetadata = new WeakMap<Response, Readonly<GatewayCompletionMetadata>>();
+
+/** In-process host accounting, including raw-only replies, without modifying the HTTP payload. */
+export function getGatewayCompletionMetadata(response: Response): Readonly<GatewayCompletionMetadata> | undefined {
+  return completionMetadata.get(response);
 }
 
 type ErrorStatus = 400 | 406 | 413 | 415 | 422 | 429 | 500 | 501 | 502 | 504;
@@ -157,6 +169,8 @@ export function createGateway<const P extends ProviderRegistry, const D extends 
     const key = chooseKey(query, route?.key);
     const dialect = selected(query, "dialect", defaultDialect);
     if (!dialects.includes(dialect)) throw new UnknownDialectError(dialect);
+    const mode = selected(query, "response", "both");
+    if (!["both", "output", "raw"].includes(mode)) throw new ApiError(400, "response must be both, output or raw");
     const model = route?.model ?? requestedModel;
     if (!model.trim() || /[\u0000-\u001f\u007f]/.test(model)) throw new ApiError(400, "Invalid model name");
     const body = await readJson(c.req.raw, maxBodyBytes);
@@ -164,17 +178,26 @@ export function createGateway<const P extends ProviderRegistry, const D extends 
     if (!parsed.success) throw new ApiError(400, "Body must be canonical BridgeInput; streaming and routing fields are not supported");
     // HTTP names are checked against the injected registries before narrowing.
     const response = await bridge.complete({ provider: key.name as keyof P & string, model, input: parsed.data as BridgeInput });
+    const metadata: GatewayCompletionMetadata = {
+      provider: key.provider, key: key.name, model: response.model, usage: response.usage, meta: response.meta,
+    };
+    if (mode === "raw") {
+      const reply = Response.json(response.raw);
+      completionMetadata.set(reply, metadata);
+      return reply;
+    }
     let output: unknown;
-    try { output = response.toDialect(dialect as (keyof D & string) | "bridge"); }
+    try { output = response.toDialect(dialect as (keyof D & string) | "bridge" | "structured"); }
     catch (error) {
       if (error instanceof UnsupportedFeatureError) throw new ApiError(406, error.message);
       throw error;
     }
-    const envelope: GatewayResponse = {
-      provider: key.provider, key: key.name, model: response.model, dialect, output,
-      usage: response.usage, raw: response.raw, meta: response.meta,
+    const envelope: GatewayOutputResponse = {
+      ...metadata, dialect, output,
     };
-    return c.json(envelope);
+    const reply = c.json(mode === "output" ? envelope : { ...envelope, raw: response.raw });
+    completionMetadata.set(reply, metadata);
+    return reply;
   });
 
   app.onError((error, c) => {

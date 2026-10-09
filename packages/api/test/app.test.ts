@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createBridge, UnsupportedFeatureError } from "@productivehub/ai-bridge";
 import { Hono } from "hono";
-import { createGateway, createDefaultGateway, type GatewayResponse } from "../src/index.js";
+import { createGateway, createDefaultGateway, type GatewayResponse, type GatewayOutputResponse } from "../src/index.js";
 import { fixture, input, post } from "./helpers.js";
 
 function setup() {
@@ -67,6 +67,7 @@ describe("bridge HTTP transport", () => {
   it.each([
     "/model?provider=unknown", "/model?dialect=unknown", "/model?provider=",
     "/model?dialect=", "/model?provider=test&provider=second", "/model?dialect=bridge&dialect=mine",
+    "/model?response=", "/model?response=unknown", "/model?response=raw&response=both",
   ])("rejects invalid selection %s before contacting the provider", async (url) => {
     const { app, complete } = setup();
     expect((await app.request(url, post())).status).toBe(400);
@@ -99,6 +100,32 @@ describe("bridge HTTP transport", () => {
     };
     expect((await app.request("/model", post(body))).status).toBe(200);
     expect(complete.mock.calls[0]?.[0].input).toEqual(body);
+  });
+
+  it("accepts provider-neutral evaluation content and keeps native blocks", async () => {
+    const { app, complete } = setup();
+    const body = { messages: [{ role: "assistant", content: [
+      { type: "boolean", id: "approved", value: true },
+      { type: "boolean", id: "urgent", value: null, probability: 0.25 },
+      { type: "choice", id: "team", value: "billing", probabilities: { billing: 0.8 }, confidence: 0.7 },
+      { type: "score", id: "priority", value: 0.75, legend: { "0": "Low", "1": "High" }, confidence: 0.6 },
+      { type: "native", dialect: "custom", value: { future: true } },
+    ] }] };
+    expect((await app.request("/model", post(body))).status).toBe(200);
+    expect(complete.mock.calls[0]?.[0].input).toEqual(body);
+  });
+
+  it.each([
+    { type: "boolean", id: "q", value: "true" },
+    { type: "boolean", id: "q", value: null, probability: 1.1 },
+    { type: "choice", id: "q", value: "billing", confidence: -1 },
+    { type: "choice", id: "q", value: "billing", probabilities: { billing: 2 } },
+    { type: "score", id: "q", value: "high" },
+    { type: "score", id: "q", value: 0.5, legend: { "0": 0 } },
+  ])("rejects malformed evaluation blocks before calling a provider %#", async (block) => {
+    const { app, complete } = setup();
+    expect((await app.request("/model", post({ messages: [{ role: "assistant", content: [block] }] }))).status).toBe(400);
+    expect(complete).not.toHaveBeenCalled();
   });
 
   it("rejects malformed JSON and unsupported content types", async () => {
@@ -166,6 +193,29 @@ describe("bridge HTTP transport", () => {
     const response = await app.request("/model?dialect=anthropic", post());
     expect(response.status).toBe(406);
     expect(await response.json()).toMatchObject({ error: expect.stringContaining("unreported token usage") });
+  });
+
+  it("parses structured JSON output and returns 406 for non-JSON answers", async () => {
+    const { app, complete } = setup();
+    expect((await app.request("/model?dialect=structured", post())).status).toBe(406);
+    const result = await complete({ model: "model", input: { messages: [] } });
+    result.output.choices[0]!.message.content = '{"approved":true}';
+    complete.mockResolvedValueOnce(result);
+    const response = await app.request("/model?dialect=structured&response=output", post());
+    expect(response.status).toBe(200);
+    const body = await response.json() as GatewayOutputResponse<{ approved: boolean }>;
+    expect(body.output).toEqual({ approved: true });
+    expect(body).not.toHaveProperty("raw");
+  });
+
+  it("raw mode skips incompatible projections and preserves the native payload", async () => {
+    const { app, complete } = setup();
+    const result = await complete({ model: "model", input: { messages: [] } });
+    result.output.usage.inputTokens = null;
+    complete.mockResolvedValueOnce(result);
+    const response = await app.request("/model?dialect=anthropic&response=raw", post());
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ native: true });
   });
 
   it("leaves unrelated routes and methods unmatched", async () => {
