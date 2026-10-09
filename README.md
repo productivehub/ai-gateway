@@ -1,3 +1,5 @@
+<img src="./assets/icon.svg" alt="AI Gateway icon" width="128" height="128" />
+
 # productiveHub AI Gateway
 
 An MIT-licensed AI gateway over [`@productivehub/ai-bridge`](https://github.com/productivehub/ai-bridge): one HTTP
@@ -13,6 +15,13 @@ created and maintained by [Segev Shmueli](https://github.com/segevsh) for
 The packages share one config format (`GatewayConfig`) and one HTTP contract.
 The CLI never calls the bridge directly; it sends HTTP requests to the API app
 in-process, or to a running server with `--url`.
+
+Completions support canonical chat and Jev evaluations, the intrinsic `structured`
+response dialect, and `both`, `output`, or `raw` response modes. DeepSeek and
+Ollama Cloud also expose remaining allowance. The standalone listener defaults
+to loopback; caller authentication and project attribution belong to the host.
+See the [HTTP contract](./packages/api/README.md#http-contract) and
+[access policy](./packages/api/README.md#caller-authentication-and-project-attribution).
 
 ```sh
 ai-gateway complete writer "Summarize this repo in one line"

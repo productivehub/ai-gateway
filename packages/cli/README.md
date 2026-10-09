@@ -17,6 +17,8 @@ ai-gateway complete writer "Summarize this repo in one line"
 git diff | ai-gateway complete claude-sonnet-5-5 --key claude-work -s "Review this diff"
 ai-gateway complete llama3.2 hi --provider ollama --dialect openai   # native OpenAI JSON
 ai-gateway complete coder --input request.json --json               # full BridgeInput in, envelope out
+ai-gateway complete triage --input request.json --dialect structured --response both --json
+ai-gateway complete triage --input request.json --response raw       # native JSON only
 ai-gateway models --key cloud          # provider catalog, one model ID per line
 ai-gateway models --configured         # alias, key, provider, native model
 ai-gateway keys                        # account, provider, base URL
@@ -31,10 +33,16 @@ the request to it in-process; no socket is opened. With `--url` (or `AI_GATEWAY_
 it sends the identical request to a running server, for example the director's
 `http://localhost:3000/api/ai`. Credentials then stay on the server.
 
+This refers to provider credentials. A remote host may separately require caller
+authentication. The CLI currently has no bearer-token or custom-header option;
+use an HTTP client that can supply the host's required headers when calling an
+authenticated director endpoint. A project manifest ID is not a CLI credential.
+See [caller authentication and project attribution](../api/README.md#caller-authentication-and-project-attribution).
+
 `complete` takes the prompt from its arguments or, when omitted, from stdin.
 `--system`, `--max-tokens` and `--temperature` fill the canonical `BridgeInput`;
 `--input file.json` (or `-` for stdin) supplies the whole input instead.
-`--key`, `--provider` and `--dialect` are the [HTTP query parameters](../api/README.md#http-contract).
+`--key`, `--provider`, `--dialect` and `--response` are the [HTTP query parameters](../api/README.md#http-contract). `--response` accepts `both` (default), `output` (envelope without raw) or `raw` (native JSON directly); raw mode always prints its whole body. `--dialect structured` projects native structured answers or a complete JSON chat answer.
 For the `bridge` dialect it prints the reply text; for other dialects it prints the
 `output` JSON; `--json` prints the whole response envelope. Lists are
 tab-separated, or JSON with `--json`. Exit codes are `0` on success, `1` for a
@@ -64,7 +72,7 @@ and `.env.example` to `.env`, then replace the placeholder model IDs.
 | `AI_GATEWAY_HOSTNAME` | `serve --hostname` | 127.0.0.1 |
 
 Provider credentials (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`,
-`OLLAMA_BASE_URL`, ...) and the other `AI_GATEWAY_*` settings are documented in the
+`TYPESAFE_API_KEY`, `OLLAMA_BASE_URL`, ...) and the other `AI_GATEWAY_*` settings are documented in the
 [API configuration](../api/README.md#configuration).
 
 ## Run from a checkout
