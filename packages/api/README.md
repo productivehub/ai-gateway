@@ -30,8 +30,9 @@ with a literal slash or an encoded `%2F`.
 | `provider` | Name in the injected provider registry | Configured default; a sole provider is inferred |
 | `key` | Named account, such as `claude-work` | Model alias binding or configured default |
 | `dialect` | Name in the injected response dialect registry | `bridge` |
+| `response` | `both` (envelope + raw), `output` (envelope without raw), or `raw` (native payload only) | `both` |
 
-The response always retains the bridge envelope. `output` contains the requested
+The default response retains the bridge envelope. `output` contains the requested
 dialect; `usage` remains canonical and `meta` contains bridge-observed timestamps.
 For the example above, the response has this shape:
 
@@ -51,6 +52,63 @@ For the example above, the response has this shape:
 The `...` entries above abbreviate native fields. HTTP JSON cannot carry
 `toDialect()` methods; choose the output dialect through the query parameter.
 `GET /health` returns `{ "ok": true }` for liveness without contacting providers.
+
+### Jev evaluation
+
+Configure `TYPESAFE_API_KEY` to enable provider `jev`. Its default base URL is `https://api.typesafe.ai/v1`; `TYPESAFE_BASE_URL` or a named account's `baseURL` can override it. Both the provider and response dialect are registered by `createDefaultGateway`.
+
+The HTTP body remains canonical `BridgeInput`. Use `jevDialect.toBaseline({ state, questions })` in TypeScript, or send the equivalent JSON:
+
+```sh
+curl 'http://127.0.0.1:8787/jev-latest?provider=jev&dialect=jev' \
+  -H 'content-type: application/json' \
+  -d '{"messages":[{"role":"user","content":"My payouts have failed for three days."}],"extensions":{"jev":{"questions":{"urgent":{"type":"noul","instructions":"Is this urgent?"}}}}}'
+```
+
+For object/array state, replace the message's content with `[{ "type": "native", "dialect": "jev", "value": { "state": { "message": "Payment failed" } } }]`. Questions support `noul`, `choice` and `score`; see the [bridge Jev example](https://github.com/productivehub/ai-bridge#jev-typesafe). `dialect=jev` returns native typed answers, probabilities and confidence in `output`; the default bridge dialect returns provider-neutral evaluation blocks in `output.choices[0].message.content` and retains native answers in `output.extensions.jev.answers`. The envelope's `model` remains the requested alias, while the Jev projection's `output.model` reports the resolved version.
+
+Named accounts, model aliases and `GET /models` work normally. `GET /allowance` returns 501. Unsupported chat controls or malformed evaluation input return 422 before the provider call. Upstream 429 returns 429 and 529 follows the gateway's provider-failure mapping (502); there are no automatic retries.
+
+### Structured output and raw responses
+
+`dialect=structured` projects typed `boolean`, `choice` and `score` content blocks
+to a provider-neutral answer map in `output`, retaining probabilities, confidence
+and score legends. The regular bridge dialect carries these blocks directly in
+`output.choices[0].message.content`. JEV's probability-only boolean uses
+`value: null` and `probability`; callers choose any true/false threshold. Custom providers can
+populate `BridgeOutput.structured` too. For chat providers, this dialect parses
+one complete JSON assistant answer; request JSON generation with `responseFormat`
+in the input. Non-JSON, incomplete, refused, tool-call and multiple-candidate
+responses return HTTP 406 when they cannot be projected.
+
+Use the same canonical request body with any of these URLs:
+
+```text
+POST /jev-latest?provider=jev&dialect=structured&response=both
+POST /jev-latest?provider=jev&dialect=structured&response=output
+POST /jev-latest?provider=jev&response=raw
+```
+
+`both` returns the projected `output` alongside the untouched native `raw`.
+`output` returns the same envelope without `raw`. `raw` returns only the native
+JSON body, with no envelope, generated bridge ID or output projection. Raw mode
+still validates selection, input and native provider responses. Invalid or
+repeated `response` selections return HTTP 400 before the provider call.
+Director exposes the same URLs beneath `/api/ai`.
+
+TypeScript callers can use `GatewayResponse<Answers, JevOutput<NativeAnswers>>`,
+`GatewayOutputResponse<Answers>` or
+`GatewayResult<Answers, JevOutput<NativeAnswers>, "raw">` for the respective bodies.
+`Answers` uses the exported `EvaluationAnswer` shapes; `NativeAnswers` describes
+the provider's wire answers. The `native` content block and all raw modes remain available.
+These generics describe expected types; arbitrary caller-defined fields require
+caller-side runtime validation. The bridge supports the same modes through
+`complete<T>({ outputDialect, response, ...request })`.
+
+In-process hosts can call `getGatewayCompletionMetadata(response)` to obtain
+canonical account/model/usage/timing data even for raw-only replies. Metadata is
+associated with the original Response object and does not change its headers or
+body; cloned or remote responses do not carry this in-process association.
 
 ### Available models
 
@@ -144,10 +202,10 @@ Creating or importing the app never opens a socket. The listener uses native
 port; `close()` waits for shutdown and can be called repeatedly.
 
 `createDefaultGateway()` wires configured `openai`, `anthropic`, `deepseek`,
-`ollama`, and `ollama-cloud` accounts and the `openai`, `anthropic`, and `ollama`
+`jev`, `ollama`, and `ollama-cloud` accounts and the `openai`, `anthropic`, `jev`, and `ollama`
 response dialects. Without JSON config, hosted providers are enabled only with a
 nonempty API key (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`,
-`OLLAMA_CLOUD_API_KEY`); local Ollama requires `OLLAMA_BASE_URL` or an explicit
+`TYPESAFE_API_KEY`, `OLLAMA_CLOUD_API_KEY`); local Ollama requires `OLLAMA_BASE_URL` or an explicit
 `providers.ollama.baseURL`.
 Credentials and endpoints are captured at startup; SDK clients initialize on first
 use. A sole account is selected automatically. With multiple accounts, select a
@@ -270,6 +328,39 @@ server.route("/api/ai", createDefaultGateway());
 The director API already mounts this app at `/api/ai`, so requests use
 `POST /api/ai/{model}?dialect=...` on the director port. It creates no second
 listener. Tests and alternate hosts can inject the app through `EdgeDeps.aiGateway`.
+
+### Caller authentication and project attribution
+
+The gateway supplies no caller authentication or project-ID authorization.
+Provider API keys remain server-side and authenticate outgoing provider requests;
+they do not authorize callers of this HTTP API. Attach host middleware before
+mounting the gateway, and remove internal authentication and project headers
+before forwarding requests to it.
+
+The standalone listener binds to `127.0.0.1` by default. This limits direct access
+to processes on the same machine; it does not identify a particular user,
+harness, or project. Binding to a network interface or exposing the listener
+through a proxy requires an explicit caller authentication policy.
+
+Director's current wrapper accepts project bearer tokens through
+`Authorization: Bearer phub_...` and attributes usage to the token's project.
+`AI_REQUIRE_TOKEN=1` requires a token for completion POSTs; without it, anonymous
+completions are allowed and are logged without a project. These are director
+settings, not standalone gateway settings. A manifest UUID or `X-Project-Id`
+header does not currently grant access or attribute usage.
+
+A host that implements tokenless local project access must explicitly enable
+that policy, verify the direct socket peer is loopback, and resolve the supplied
+project ID. It must also restrict accepted hosts and browser origins to prevent
+DNS rebinding and cross-origin calls. A local reverse proxy makes remote callers
+appear local, so keep such a listener unproxied. Project IDs select accounting
+records; they do not prove ownership. This policy trusts local processes and
+requires stronger credentials or a restricted Unix socket when local users need
+isolation.
+
+Protect management endpoints as well as completions: exposing an unauthenticated
+token-creation endpoint would let callers mint their own credentials. The
+gateway does not add these protections automatically.
 
 ## Configuration
 

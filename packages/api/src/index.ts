@@ -1,5 +1,5 @@
-export { createGateway } from "./app.js";
-export type { GatewayOptions, GatewayResponse, GatewayAllowanceResponse, Environment } from "./app.js";
+export { createGateway, getGatewayCompletionMetadata } from "./app.js";
+export type { GatewayOptions, GatewayResponse, GatewayOutputResponse, GatewayResult, GatewayCompletionMetadata, GatewayAllowanceResponse, Environment } from "./app.js";
 export { createDefaultGateway, resolveDefaultGatewayConfig } from "./defaults.js";
 export type { DefaultGatewayOptions } from "./defaults.js";
 export { parseGatewayConfig, loadGatewayConfig, listGatewayProviders, isGatewayKeyName, isGatewayBaseURL } from "./config.js";

@@ -11,6 +11,10 @@ const record = z.record(z.string(), z.unknown());
 const extensions = z.record(z.string(), record.optional());
 const cacheControl = z.strictObject({ type: z.literal("ephemeral"), ttl: z.enum(["5m", "1h"]).optional() });
 const metadata = { cacheControl: cacheControl.optional(), extensions: extensions.optional() };
+const probability = z.number().min(0).max(1);
+const evaluationMetadata = {
+  ...metadata, id: z.string(), probabilities: z.record(z.string(), probability).optional(), confidence: probability.optional(),
+};
 const source = z.discriminatedUnion("type", [
   z.strictObject({ type: z.literal("url"), url: z.string().min(1) }),
   z.strictObject({ type: z.literal("base64"), mediaType: z.string().min(1), data: z.string() }),
@@ -18,6 +22,9 @@ const source = z.discriminatedUnion("type", [
 ]);
 
 const block: z.ZodType<JsonOptional<ContentBlock>> = z.lazy(() => z.discriminatedUnion("type", [
+  z.strictObject({ ...metadata, type: z.literal("boolean"), id: z.string(), value: z.boolean().nullable(), probability: probability.optional() }),
+  z.strictObject({ ...evaluationMetadata, type: z.literal("choice"), value: z.string() }),
+  z.strictObject({ ...evaluationMetadata, type: z.literal("score"), value: z.number(), legend: z.record(z.string(), z.string()).optional() }),
   z.strictObject({ ...metadata, type: z.literal("text"), text: z.string(), citations: z.array(z.unknown()).optional() }),
   z.strictObject({ ...metadata, type: z.literal("image"), source, detail: z.enum(["auto", "low", "high", "original"]).optional() }),
   z.strictObject({ ...metadata, type: z.literal("document"), source, name: z.string().optional() }),

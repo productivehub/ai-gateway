@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none" role="img" aria-labelledby="title description">
+  <title id="title">productiveHub AI Gateway</title>
+  <desc id="description">One incoming connection fans into three routes. The four terminals use productiveHub's coral and white rounded corner forms.</desc>
+  <path d="M132 256H244C300 256 300 144 380 144M244 256H380M244 256C300 256 300 368 380 368" stroke="#F54A42" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- The four terminal shapes follow the four corner orientations of the productiveHub mark. -->
+  <path d="M96 292H132V256C132 236.118 115.882 220 96 220C76.118 220 60 236.118 60 256C60 275.882 76.118 292 96 292Z" fill="white" stroke="#F54A42" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M416 180H380V144C380 124.118 396.118 108 416 108C435.882 108 452 124.118 452 144C452 163.882 435.882 180 416 180Z" fill="#F54A42"/>
+  <path d="M416 220H452V256C452 275.882 435.882 292 416 292C396.118 292 380 275.882 380 256C380 236.118 396.118 220 416 220Z" fill="#F54A42"/>
+  <path d="M416 332H380V368C380 387.882 396.118 404 416 404C435.882 404 452 387.882 452 368C452 348.118 435.882 332 416 332Z" fill="white" stroke="#F54A42" stroke-width="8" stroke-linejoin="round"/>
+</svg>

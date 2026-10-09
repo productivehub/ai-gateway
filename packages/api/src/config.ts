@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { z } from "zod";
-import { OpenAIProvider, AnthropicProvider, DeepSeekProvider, OllamaProvider, OllamaCloudProvider, type ProviderAdapter, type ProviderConfig, type ProviderRegistry } from "@productivehub/ai-bridge";
+import { OpenAIProvider, AnthropicProvider, DeepSeekProvider, JevProvider, OllamaProvider, OllamaCloudProvider, type ProviderAdapter, type ProviderConfig, type ProviderRegistry } from "@productivehub/ai-bridge";
 import type { Environment } from "./app.js";
 
 export interface GatewayKeyConfig {
@@ -51,6 +51,7 @@ const builtinFactories: GatewayProviderFactories = {
   openai: { create: (config) => new OpenAIProvider(config), defaultBaseURL: "https://api.openai.com/v1", apiKeyEnv: "OPENAI_API_KEY", baseURLEnv: "OPENAI_BASE_URL", requiresApiKey: true, endpoints: { complete: "/chat/completions", models: "/models" } },
   anthropic: { create: (config) => new AnthropicProvider(config), defaultBaseURL: "https://api.anthropic.com", apiKeyEnv: "ANTHROPIC_API_KEY", baseURLEnv: "ANTHROPIC_BASE_URL", requiresApiKey: true, endpoints: { complete: "/v1/messages", models: "/v1/models" } },
   deepseek: { create: (config) => new DeepSeekProvider(config), defaultBaseURL: "https://api.deepseek.com", apiKeyEnv: "DEEPSEEK_API_KEY", baseURLEnv: "DEEPSEEK_BASE_URL", requiresApiKey: true, endpoints: { complete: "/chat/completions", models: "/models", allowance: "/user/balance" } },
+  jev: { create: (config) => new JevProvider(config), defaultBaseURL: "https://api.typesafe.ai/v1", apiKeyEnv: "TYPESAFE_API_KEY", baseURLEnv: "TYPESAFE_BASE_URL", requiresApiKey: true, endpoints: { complete: "/systemone", models: "/models" } },
   ollama: { create: (config) => new OllamaProvider(config), baseURLEnv: "OLLAMA_BASE_URL", apiKeyEnv: "OLLAMA_API_KEY", endpoints: { complete: "/api/chat", models: "/api/tags" } },
   "ollama-cloud": { create: (config) => new OllamaCloudProvider(config), defaultBaseURL: "https://ollama.com", apiKeyEnv: "OLLAMA_CLOUD_API_KEY", baseURLEnv: "OLLAMA_CLOUD_BASE_URL", requiresApiKey: true, endpoints: { complete: "/api/chat", models: "/api/tags", allowance: "/api/balance" } },
 };

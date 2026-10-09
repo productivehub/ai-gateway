@@ -1,0 +1,14 @@
+Historical prompt for the original blue concept, generated with the built-in image_gen tool.
+The current icon is authored as icon.svg, using productiveHub's coral/white
+palette and the four rounded corner orientations as routing terminals, with one
+incoming connection and three outgoing routes. There is no arch or backdrop.
+icon.png is a direct 1024px export of icon.svg using @resvg/resvg-js,
+with a fully transparent background.
+
+Use case: logo-brand
+Asset type: square open-source software project icon, transparent PNG.
+Primary request: Create a polished standalone icon for productiveHub AI Gateway, an HTTP entry point routing AI requests to multiple providers. Symbol: a bold geometric upright portal or gateway, one thick connection entering from the left and branching into three short routes with substantial round endpoints on the right. Portal remains the dominant silhouette. Keep the design distinctive and exceptionally simple, legible at 32 pixels. This is a sibling icon to AI Bridge, using the same bold rounded geometric design language.
+Style/medium: crisp flat vector-style graphic, bold consistent geometry, gently rounded corners, balanced negative space. Front-facing, not isometric.
+Color palette: use the existing project's royal blue #2563eb and lighter blue #60a5fa, with strong contrast and restrained color variation.
+Composition: one centered mark on a square canvas, about 75 percent of canvas width, generous equal transparent padding.
+Constraints: actual transparent background, no enclosing square or app tile, no text, no letters, no watermark, no decorative sparkles, no brain, no robot, no shadows, no glow, no hairline details. One finished icon, not a presentation sheet.

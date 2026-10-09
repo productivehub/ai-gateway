@@ -5,7 +5,7 @@ import { parseArgs, type ParseArgsConfig } from "node:util";
 import type { BridgeCost, ContentBlock, BridgeInput, BridgeModelsResponse } from "@productivehub/ai-bridge";
 import {
   createDefaultGateway, loadGatewayConfig,
-  type Environment, type GatewayConfig, type GatewayResponse, type GatewayKeyInfo, type GatewayModelRoute,
+  type Environment, type GatewayConfig, type GatewayResponse, type GatewayOutputResponse, type GatewayKeyInfo, type GatewayModelRoute,
   type GatewayAllowanceResponse,
 } from "@productivehub/ai-gateway-api";
 import { listenGateway, type FetchApp, type GatewayListener } from "@productivehub/ai-gateway-api/listener";
@@ -40,13 +40,13 @@ Global options:
 
 serve:     --port <n>  --hostname <host>
 complete:  --key <name>  --provider <name>  --dialect <name>  -s, --system <text>
-           --max-tokens <n>  --temperature <n>  --input <file|->  --json
+           --max-tokens <n>  --temperature <n>  --input <file|->  --response <both|output|raw>  --json
 models:    --key <name>  --provider <name>  --configured  --json
 allowance: --key <name>  --provider <name>  --json
 keys:      --json
 
 complete prints the reply text for the bridge dialect and the output JSON for any
-other dialect; --json prints the full response envelope.`;
+other dialect; --json prints the response body. --response raw prints only native JSON.`;
 
 class UsageError extends Error {}
 class RequestError extends Error {}
@@ -60,7 +60,7 @@ const selection = { key: { type: "string" }, provider: { type: "string" } } sati
 const commandOptions = {
   serve: { port: { type: "string" }, hostname: { type: "string" } },
   complete: {
-    ...selection, dialect: { type: "string" }, system: { type: "string", short: "s" },
+    ...selection, dialect: { type: "string" }, response: { type: "string" }, system: { type: "string", short: "s" },
     "max-tokens": { type: "string" }, temperature: { type: "string" }, input: { type: "string" }, json: { type: "boolean" },
   },
   models: { ...selection, configured: { type: "boolean" }, json: { type: "boolean" } },
@@ -104,7 +104,7 @@ function query(values: Record<string, string | undefined>): string {
   return text ? `?${text}` : "";
 }
 
-function replyText(response: GatewayResponse): string | undefined {
+function replyText(response: GatewayOutputResponse): string | undefined {
   if (response.dialect !== "bridge") return undefined;
   const content = (response.output as GatewayResponse<{ choices?: { message?: { content?: string | ContentBlock[] } }[] }>["output"]).choices?.[0]?.message?.content;
   if (typeof content === "string") return content;
@@ -252,14 +252,16 @@ export async function runCli(argv: readonly string[], io: CliIO = {}): Promise<n
     const maxOutputTokens = number(options["max-tokens"], "max-tokens", true);
     const temperature = number(options.temperature, "temperature", false);
     input = { ...input, ...(maxOutputTokens !== undefined ? { maxOutputTokens } : {}), ...(temperature !== undefined ? { temperature } : {}) };
-    const response = await send<GatewayResponse>(`/${encodeURIComponent(model)}${query({ key: options.key, provider: options.provider, dialect: options.dialect })}`, {
+    if (options.response !== undefined && !["both", "output", "raw"].includes(options.response)) throw new UsageError("--response must be both, output or raw");
+    const response = await send<unknown>(`/${encodeURIComponent(model)}${query({ key: options.key, provider: options.provider, dialect: options.dialect, response: options.response })}`, {
       method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input),
     });
-    if (options.json) printJson(response);
+    if (options.json || options.response === "raw") printJson(response);
     else {
-      const text = replyText(response);
+      const envelope = response as GatewayOutputResponse;
+      const text = replyText(envelope);
       if (text !== undefined) print(text);
-      else printJson(response.output);
+      else printJson(envelope.output);
     }
     return 0;
   } catch (error) {
