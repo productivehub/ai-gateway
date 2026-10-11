@@ -142,6 +142,26 @@ describe("allowance", () => {
 });
 
 describe("remote", () => {
+  it("sends caller and project headers to --url only", async () => {
+    const fetch = vi.fn(async () => Response.json({ keys: [] }));
+    const f = fetch as unknown as typeof globalThis.fetch;
+    await run(["keys", "--url", "http://host", "--project-id", "p-1"], { fetch: f });
+    const h = new Headers((fetch.mock.calls[0] as unknown as [unknown, RequestInit])[1].headers);
+    expect(h.get("x-phub-caller")).toBe("ai-gateway-cli");
+    expect(h.get("x-phub-project-id")).toBe("p-1");
+    await run(["keys", "--url", "http://host"], { fetch: f, env: { AI_GATEWAY_PROJECT_ID: "e-2" } });
+    expect(new Headers((fetch.mock.calls[1] as unknown as [unknown, RequestInit])[1].headers).get("x-phub-project-id")).toBe("e-2");
+    await run(["keys", "--url", "http://host"], { fetch: f });
+    const h3 = new Headers((fetch.mock.calls[2] as unknown as [unknown, RequestInit])[1].headers);
+    expect(h3.get("x-phub-caller")).toBe("ai-gateway-cli");
+    expect(h3.has("x-phub-project-id")).toBe(false);
+  });
+
+  it("rejects an invalid --project-id as a usage error", async () => {
+    const { code } = await run(["keys", "--url", "http://host", "--project-id", "bad id!"], { fetch: vi.fn() as unknown as typeof globalThis.fetch });
+    expect(code).toBe(2);
+  });
+
   it("sends the same requests to --url with the injected fetch", async () => {
     const fetch = vi.fn(async () => Response.json({ keys: [{ name: "work", provider: "anthropic", endpoints: {} }] }));
     const { stdout } = await run(["keys", "--url", "http://host:3000/api/ai/"], { fetch: fetch as unknown as typeof globalThis.fetch });
