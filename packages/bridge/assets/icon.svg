@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none" role="img" aria-labelledby="title description">
+  <title id="title">productiveHub AI Bridge</title>
+  <desc id="description">A coral bridge with two supports and productiveHub's rounded corner nodes integrated into its endpoints.</desc>
+  <g stroke="#F54A42" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M92 320C132 120 380 120 420 320" stroke-width="32"/>
+    <path d="M184 196V320M328 196V320" stroke-width="24"/>
+    <path d="M92 320H420" stroke-width="32"/>
+  </g>
+  <!-- The round forms with one square corner repeat productiveHub's logo geometry. -->
+  <path d="M92 278H134V320C134 343.196 115.196 362 92 362C68.804 362 50 343.196 50 320C50 296.804 68.804 278 92 278Z" fill="#F54A42"/>
+  <path d="M92 300H112V320C112 331.046 103.046 340 92 340C80.954 340 72 331.046 72 320C72 308.954 80.954 300 92 300Z" fill="white"/>
+  <path d="M420 362H378V320C378 296.804 396.804 278 420 278C443.196 278 462 296.804 462 320C462 343.196 443.196 362 420 362Z" fill="#F54A42"/>
+  <path d="M420 340H400V320C400 308.954 408.954 300 420 300C431.046 300 440 308.954 440 320C440 331.046 431.046 340 420 340Z" fill="white"/>
+</svg>

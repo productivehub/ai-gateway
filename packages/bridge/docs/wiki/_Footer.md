@@ -1,0 +1,1 @@
+Created and maintained by [Segev Shmueli](https://github.com/segevsh) (`@segevsh`) for [productiveHub](https://github.com/productivehub). [MIT license](https://github.com/productivehub/ai-bridge/blob/main/LICENSE). [Documentation source](https://github.com/productivehub/ai-bridge/tree/main/docs/wiki).
