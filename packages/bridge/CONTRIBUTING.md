@@ -4,14 +4,16 @@ Contributions to providers, dialects, documentation and the canonical contract a
 
 ## Local setup
 
-Use Node.js 22 or later and the pnpm version specified in `package.json`. From a standalone checkout:
+Use Node.js 22 or later and the pnpm version specified in the repository's root `package.json`. The bridge is the `packages/bridge` package of the [AI gateway repository](https://github.com/productivehub/ai-gateway); from its root:
 
 ```sh
 pnpm install
-pnpm typecheck
-pnpm test
-pnpm build
+pnpm -F @productivehub/ai-bridge typecheck
+pnpm -F @productivehub/ai-bridge test
+pnpm -F @productivehub/ai-bridge build
 ```
+
+Run the gateway's api and cli tests too when you change a public contract, since they consume the bridge.
 
 Tests use injected transports and do not need real API keys or running model servers.
 

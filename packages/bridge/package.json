@@ -1,9 +1,11 @@
 {
   "name": "@productivehub/ai-bridge",
   "version": "0.1.0",
-  "packageManager": "pnpm@11.24.0",
   "description": "Call any AI model provider through one provider-neutral format, with injected providers and typed response dialects",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "author": {
     "name": "Segev Shmueli",
     "url": "https://github.com/segevsh"
@@ -16,11 +18,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/productivehub/ai-bridge.git"
+    "url": "git+https://github.com/productivehub/ai-gateway.git",
+    "directory": "packages/bridge"
   },
-  "homepage": "https://github.com/productivehub/ai-bridge#readme",
+  "homepage": "https://github.com/productivehub/ai-gateway/tree/main/packages/bridge#readme",
   "bugs": {
-    "url": "https://github.com/productivehub/ai-bridge/issues"
+    "url": "https://github.com/productivehub/ai-gateway/issues"
   },
   "engines": {
     "node": ">=22"
@@ -44,8 +47,8 @@
   },
   "files": ["dist", "docs", "assets", "README.md", "LICENSE", "AUTHORS.md", "CONTRIBUTING.md"],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
+    "build": "tsc -b tsconfig.json",
+    "typecheck": "tsc -b tsconfig.json && tsc -p tsconfig.test.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "echo \"lint: not configured yet\""

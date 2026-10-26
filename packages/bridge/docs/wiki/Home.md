@@ -1,6 +1,6 @@
 # AI Bridge
 
-`@productivehub/ai-bridge` is an in-process TypeScript library for calling AI providers through a shared, provider-neutral contract. It is a [productiveHub](https://github.com/productivehub) project created and maintained by [Segev Shmueli](https://github.com/segevsh) (`@segevsh`), licensed under [MIT](https://github.com/productivehub/ai-bridge/blob/main/LICENSE).
+`@productivehub/ai-bridge` is an in-process TypeScript library for calling AI providers through a shared, provider-neutral contract. It is a [productiveHub](https://github.com/productivehub) project created and maintained by [Segev Shmueli](https://github.com/segevsh) (`@segevsh`), licensed under [MIT](https://github.com/productivehub/ai-gateway/blob/main/packages/bridge/LICENSE).
 
 Providers translate between their API and the bridge baseline. Dialects translate between the baseline and a caller's desired format. A provider is registered once, independently of the response dialects you use.
 
@@ -22,4 +22,4 @@ By default, completions return `BridgeResponse`, with canonical output, token us
 
 The current implementation supports non-streaming chat and typed Jev evaluations. DeepSeek and Ollama Cloud also report remaining allowance. Supported features depend on the selected provider; unsupported conversions fail explicitly. Streaming, embeddings, automatic retries and fallbacks, response caching, and charge calculation are not implemented.
 
-The authoritative contracts live in [src/types.ts](https://github.com/productivehub/ai-bridge/blob/main/src/types.ts) and [src/baseline.ts](https://github.com/productivehub/ai-bridge/blob/main/src/baseline.ts). See the [architecture notes](https://github.com/productivehub/ai-bridge/blob/main/docs/ARCHITECTURE.md) for design decisions.
+The authoritative contracts live in [src/types.ts](https://github.com/productivehub/ai-gateway/blob/main/packages/bridge/src/types.ts) and [src/baseline.ts](https://github.com/productivehub/ai-gateway/blob/main/packages/bridge/src/baseline.ts). See the [architecture notes](https://github.com/productivehub/ai-gateway/blob/main/packages/bridge/docs/ARCHITECTURE.md) for design decisions.

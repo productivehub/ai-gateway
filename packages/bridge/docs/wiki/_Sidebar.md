@@ -11,4 +11,4 @@
 - [API Reference](./API-Reference.md)
 - [Maintaining the Wiki](./Maintaining-the-Wiki.md)
 
-[Repository](https://github.com/productivehub/ai-bridge) · [Issues](https://github.com/productivehub/ai-bridge/issues)
+[Repository](https://github.com/productivehub/ai-gateway/tree/main/packages/bridge) · [Issues](https://github.com/productivehub/ai-gateway/issues)

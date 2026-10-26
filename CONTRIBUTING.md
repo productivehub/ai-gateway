@@ -10,11 +10,12 @@ so hosts can mount it. Listener and CLI changes should retain Node and Deno supp
 The CLI is a client of the HTTP contract: it sends requests to the app or a
 `--url` server and never calls the bridge directly.
 
-Each package lives in `packages/<name>`; new SDK packages follow the same layout
-(see the repository README). From the director workspace root, run `pnpm install`
-and `pnpm --filter "@productivehub/ai-gateway-cli..." build`, then run
-`pnpm -F <package> typecheck` and `pnpm -F <package> test` for each package you
-changed. Include meaningful tests for behavior changes and update the package
+Each package lives in `packages/<name>`, the bridge included; new SDK packages
+follow the same layout (see the repository README). Run `pnpm install` and
+`pnpm build` from this repository root (or `pnpm install` from the director
+workspace root when working inside it), then run `pnpm -F <package> typecheck` and
+`pnpm -F <package> test` for each package you changed. Bridge changes follow the
+[bridge's conventions](./packages/bridge/CONTRIBUTING.md). Include meaningful tests for behavior changes and update the package
 README for contract, command or configuration changes. For listener changes, also
 run the Node and Deno runtime smoke checks documented in the api README. Use mocked
 providers; do not commit credentials.

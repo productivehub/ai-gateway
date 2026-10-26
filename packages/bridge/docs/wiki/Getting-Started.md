@@ -4,13 +4,15 @@
 
 Use Node.js 22 or later and the pnpm version declared in `package.json`.
 
+The bridge is the `packages/bridge` package of the [AI gateway repository](https://github.com/productivehub/ai-gateway).
+
 ```sh
-git clone https://github.com/productivehub/ai-bridge.git
-cd ai-bridge
+git clone https://github.com/productivehub/ai-gateway.git
+cd ai-gateway
 pnpm install
-pnpm typecheck
-pnpm test
-pnpm build
+pnpm -F @productivehub/ai-bridge typecheck
+pnpm -F @productivehub/ai-bridge test
+pnpm -F @productivehub/ai-bridge build
 ```
 
 Inside phub-director, run installation from the monorepo root. A workspace consumer can declare `"@productivehub/ai-bridge": "workspace:*"` as a dependency. The examples below assume the package is available to your application.
