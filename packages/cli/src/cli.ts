@@ -35,6 +35,7 @@ Commands:
 
 Global options:
   --config <path>             GatewayConfig JSON (env AI_GATEWAY_CONFIG)
+  --project-id <id>           Project id sent as X-Phub-Project-Id to a --url server (env AI_GATEWAY_PROJECT_ID)
   --url <url>                 Call a running ai-gateway server, e.g. http://localhost:3000/api/ai (env AI_GATEWAY_URL)
   -h, --help                  Show this help
 
@@ -54,6 +55,7 @@ class RequestError extends Error {}
 const globalOptions = {
   config: { type: "string" },
   url: { type: "string" },
+  "project-id": { type: "string" },
   help: { type: "boolean", short: "h" },
 } satisfies ParseArgsConfig["options"];
 const selection = { key: { type: "string" }, provider: { type: "string" } } satisfies ParseArgsConfig["options"];
@@ -148,6 +150,8 @@ export async function runCli(argv: readonly string[], io: CliIO = {}): Promise<n
     const { values: options, positionals } = parse(command as Command, args);
     if (options.help) { print(usage); return 0; }
     const remote = options.url ?? (env.AI_GATEWAY_URL?.trim() || undefined);
+    const projectId = (options["project-id"] ?? env.AI_GATEWAY_PROJECT_ID)?.trim() || undefined;
+    if (projectId !== undefined && !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(projectId)) throw new UsageError("Invalid --project-id");
     if (remote && options.config) throw new UsageError("Choose --config or --url, not both");
     const configPath = options.config ?? (env.AI_GATEWAY_CONFIG?.trim() || undefined);
     const loadConfig = async (): Promise<GatewayConfig | undefined> => configPath ? loadGatewayConfig(configPath) : undefined;
@@ -180,7 +184,10 @@ export async function runCli(argv: readonly string[], io: CliIO = {}): Promise<n
       if (remote) {
         let url: URL;
         try { url = new URL(`${remote.replace(/\/+$/, "")}${path}`); } catch { throw new UsageError("Invalid --url"); }
-        try { response = await (io.fetch ?? globalThis.fetch)(url, init); }
+        const headers = new Headers(init?.headers);
+        if (!headers.has("x-phub-caller")) headers.set("x-phub-caller", "ai-gateway-cli");
+        if (projectId !== undefined && !headers.has("x-phub-project-id")) headers.set("x-phub-project-id", projectId);
+        try { response = await (io.fetch ?? globalThis.fetch)(url, { ...init, headers }); }
         catch (error) {
           const cause = (error as Error & { cause?: Error }).cause?.message ?? (error as Error).message;
           throw new RequestError(`Cannot reach ${url.origin}: ${cause}`);

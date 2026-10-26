@@ -20,6 +20,14 @@ function setup(getAllowance: () => Promise<ProviderAllowanceResponse> = async ()
 }
 
 describe("GET /allowance", () => {
+  it("reports usage permission failures without exposing provider diagnostics", async () => {
+    const { app } = setup(async () => { throw new ProviderHttpError(403, "secret-body"); });
+    const response = await app.request("/allowance?key=supported");
+    expect(response.status).toBe(403);
+    const body = await response.text();
+    expect(body).toContain("permission to read usage");
+    expect(body).not.toContain("secret-body");
+  });
   it("returns the adapter allowance with timing, key and provider", async () => {
     const { app, supported, complete } = setup();
     const response = await app.request("/allowance?key=supported");
