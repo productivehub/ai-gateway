@@ -48,7 +48,7 @@ export function getGatewayCompletionMetadata(response: Response): Readonly<Gatew
   return completionMetadata.get(response);
 }
 
-type ErrorStatus = 400 | 406 | 413 | 415 | 422 | 429 | 500 | 501 | 502 | 504;
+type ErrorStatus = 400 | 403 | 406 | 413 | 415 | 422 | 429 | 500 | 501 | 502 | 504;
 class ApiError extends Error {
   constructor(readonly status: ErrorStatus, message: string) { super(message); }
 }
@@ -159,6 +159,9 @@ export function createGateway<const P extends ProviderRegistry, const D extends 
     } catch (error) {
       // Route-local: the global handler maps UnsupportedFeatureError to 422 for the completion path.
       if (error instanceof UnsupportedFeatureError) throw new ApiError(501, error.message);
+      if (error instanceof Error && "status" in error && error.status === 403) {
+        throw new ApiError(403, "Provider denied access to usage. Check that this connection's credential has permission to read usage.");
+      }
       throw error;
     }
   });

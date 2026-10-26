@@ -8,12 +8,15 @@ import {
 const fakeAdapter = (): ProviderAdapter => ({ complete: async () => { throw new Error("not called"); } });
 
 describe("listGatewayProviders", () => {
-  it("lists exactly the six built-ins with their public fields", () => {
+  it("lists exactly the nine built-ins with their public fields", () => {
     const expected: GatewayProviderInfo[] = [
       { id: "openai", defaultBaseURL: "https://api.openai.com/v1", requiresApiKey: true, endpoints: ["complete", "models"] },
       { id: "anthropic", defaultBaseURL: "https://api.anthropic.com", requiresApiKey: true, endpoints: ["complete", "models"] },
       { id: "deepseek", defaultBaseURL: "https://api.deepseek.com", requiresApiKey: true, endpoints: ["complete", "models", "allowance"] },
+      { id: "mistral", defaultBaseURL: "https://api.mistral.ai/v1", requiresApiKey: true, endpoints: ["complete", "models"] },
+      { id: "xai", defaultBaseURL: "https://api.x.ai/v1", requiresApiKey: true, endpoints: ["complete", "models"] },
       { id: "jev", defaultBaseURL: "https://api.typesafe.ai/v1", requiresApiKey: true, endpoints: ["complete", "models"] },
+      { id: "perplexity", defaultBaseURL: "https://api.perplexity.ai/v1", requiresApiKey: true, endpoints: ["complete", "models"] },
       { id: "ollama", defaultBaseURL: null, requiresApiKey: false, endpoints: ["complete", "models"] },
       { id: "ollama-cloud", defaultBaseURL: "https://ollama.com", requiresApiKey: true, endpoints: ["complete", "models", "allowance"] },
     ];
@@ -22,7 +25,7 @@ describe("listGatewayProviders", () => {
 
   it("gives every entry exactly id, defaultBaseURL, requiresApiKey and endpoints", () => {
     const providers = listGatewayProviders();
-    expect(providers).toHaveLength(6);
+    expect(providers).toHaveLength(9);
     for (const info of providers) expect(Object.keys(info).sort()).toEqual(["defaultBaseURL", "endpoints", "id", "requiresApiKey"]);
     const custom = listGatewayProviders({ fake: { create: fakeAdapter } });
     for (const info of custom) expect(Object.keys(info).sort()).toEqual(["defaultBaseURL", "endpoints", "id", "requiresApiKey"]);
@@ -34,10 +37,10 @@ describe("listGatewayProviders", () => {
       fake: { create: fakeAdapter, defaultBaseURL: "https://fake.test", requiresApiKey: true, endpoints: { complete: "/c" } },
     };
     const providers = listGatewayProviders(factories);
-    expect(providers.map((info) => info.id)).toEqual(["openai", "anthropic", "deepseek", "jev", "ollama", "ollama-cloud", "fake"]);
+    expect(providers.map((info) => info.id)).toEqual(["openai", "anthropic", "deepseek", "mistral", "xai", "jev", "perplexity", "ollama", "ollama-cloud", "fake"]);
     expect(providers[0]).toEqual({ id: "openai", defaultBaseURL: "https://api.openai.com/v1", requiresApiKey: false, endpoints: ["complete", "models"] });
-    expect(providers[6]).toEqual({ id: "fake", defaultBaseURL: "https://fake.test", requiresApiKey: true, endpoints: ["complete"] });
-    expect(providers.slice(1, 6)).toEqual(listGatewayProviders().slice(1, 6));
+    expect(providers[9]).toEqual({ id: "fake", defaultBaseURL: "https://fake.test", requiresApiKey: true, endpoints: ["complete"] });
+    expect(providers.slice(1, 9)).toEqual(listGatewayProviders().slice(1, 9));
   });
 });
 

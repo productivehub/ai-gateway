@@ -201,11 +201,11 @@ Creating or importing the app never opens a socket. The listener uses native
 `Deno.serve` on Deno and `@hono/node-server` on Node. Port `0` selects an available
 port; `close()` waits for shutdown and can be called repeatedly.
 
-`createDefaultGateway()` wires configured `openai`, `anthropic`, `deepseek`,
-`jev`, `ollama`, and `ollama-cloud` accounts and the `openai`, `anthropic`, `jev`, and `ollama`
+`createDefaultGateway()` wires configured `openai`, `anthropic`, `deepseek`, `mistral`, `xai`,
+`jev`, `perplexity`, `ollama`, and `ollama-cloud` accounts and the `openai`, `anthropic`, `mistral`, `jev`, `perplexity`, and `ollama`
 response dialects. Without JSON config, hosted providers are enabled only with a
-nonempty API key (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`,
-`TYPESAFE_API_KEY`, `OLLAMA_CLOUD_API_KEY`); local Ollama requires `OLLAMA_BASE_URL` or an explicit
+nonempty API key (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`, `MISTRAL_API_KEY`, `XAI_API_KEY`,
+`TYPESAFE_API_KEY`, `PERPLEXITY_API_KEY`, `OLLAMA_CLOUD_API_KEY`); local Ollama requires `OLLAMA_BASE_URL` or an explicit
 `providers.ollama.baseURL`.
 Credentials and endpoints are captured at startup; SDK clients initialize on first
 use. A sole account is selected automatically. With multiple accounts, select a
@@ -215,6 +215,48 @@ key/provider per request or configure a default. With no accounts, `/health` wor
 Use `providers` for simple built-in connection options or `config` for named
 accounts and model routes. They cannot be supplied together. Use
 `createGateway({ bridge })` for arbitrary custom bridge registries.
+
+## Mistral and xAI (Grok)
+
+Set `MISTRAL_API_KEY` to enable the `mistral` provider and `XAI_API_KEY` to enable `xai`. `MISTRAL_BASE_URL` defaults to `https://api.mistral.ai/v1` and `XAI_BASE_URL` to `https://api.x.ai/v1`; custom base URLs include `/v1`. Both advertise `/chat/completions` for completions and `/models` for discovery, with no allowance support (`GET /allowance` answers 501).
+
+Mistral has its own `mistral` response dialect, which projects native Chat Completions output (thinking chunks, tool calls, `model_length` finish reasons). xAI's API is OpenAI-compatible, so use `dialect=openai` for its native shape; Grok's `reasoning_content` is kept in `output.choices[].message.extensions.openai` in the default `bridge` output. Neither one reads OpenAI settings or keys.
+
+```sh
+curl 'http://127.0.0.1:8787/mistral-large-latest?provider=mistral&dialect=mistral' \
+  -H 'Content-Type: application/json' \
+  -d '{"messages":[{"role":"user","content":"Bonjour"}],"maxOutputTokens":256,"extensions":{"mistral":{"safe_prompt":true}}}'
+curl 'http://127.0.0.1:8787/grok-4.7?provider=xai&dialect=openai' \
+  -H 'Content-Type: application/json' \
+  -d '{"messages":[{"role":"user","content":"What is 101*3?"}],"reasoning":{"effort":"low"}}'
+```
+
+See the [bridge documentation](https://github.com/productivehub/ai-bridge#mistral) for the request mapping and its rejections.
+
+## Perplexity Agent API
+
+Set `PERPLEXITY_API_KEY` to enable the `perplexity` provider. `PERPLEXITY_BASE_URL` defaults to `https://api.perplexity.ai/v1`; custom base URLs include `/v1`. The gateway advertises `/agent` for completions and `/models` for discovery, with no allowance support. The provider and `perplexity` response dialect are registered by `createDefaultGateway`.
+
+The HTTP body remains canonical `BridgeInput`. TypeScript callers can prepare it with `perplexityDialect.toBaseline(nativeInput)`. For example:
+
+```sh
+curl 'http://127.0.0.1:8787/perplexity%2Fsonar?provider=perplexity&dialect=perplexity' \
+  -H 'Content-Type: application/json' \
+  -d '{"messages":[{"role":"user","content":"Find recent battery recycling research."}],"maxOutputTokens":2048,"tools":[{"type":"native","dialect":"perplexity","value":{"type":"web_search"}}],"extensions":{"perplexity":{"max_steps":3}}}'
+```
+
+`dialect=perplexity` projects native Agent responses, including citations, function calls, search results and cost metadata. The default `bridge` output carries canonical text and tool calls, with provider-specific items retained as native blocks. Streaming, background execution and native model overrides/fallback chains are rejected. Choose a model from `GET /models?key=<account>`; models requiring `max_output_tokens` need canonical `maxOutputTokens` in the request.
+
+Named account and model alias configuration:
+
+```json
+{
+  "keys": { "research": { "provider": "perplexity", "apiKeyEnv": "PERPLEXITY_API_KEY" } },
+  "models": { "research": { "key": "research", "model": "perplexity/sonar" } }
+}
+```
+
+Then use `POST /research?dialect=perplexity`, or the CLI with `complete research --input request.json --dialect perplexity`. See [the bridge documentation](https://github.com/productivehub/ai-bridge#perplexity-agent-api) and [Perplexity's API reference](https://docs.perplexity.ai/api-reference/agent-post).
 
 ## JSON startup config and named accounts
 

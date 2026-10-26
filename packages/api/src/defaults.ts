@@ -1,6 +1,6 @@
 import { env as processEnv } from "node:process";
 import {
-  createBridge, resolveBuiltInProviderConfig, openaiDialect, anthropicDialect, ollamaDialect, jevDialect,
+  createBridge, resolveBuiltInProviderConfig, openaiDialect, anthropicDialect, ollamaDialect, jevDialect, perplexityDialect, mistralDialect,
   type BuiltInProviderConfig,
 } from "@productivehub/ai-bridge";
 import { createGateway, type Environment, type GatewayOptions } from "./app.js";
@@ -31,7 +31,7 @@ export function createDefaultGateway(options: DefaultGatewayOptions = {}) {
   const connections = options.config ? {} : resolveBuiltInProviderConfig(options.providers, env);
   const config = options.config ? parseGatewayConfig(options.config) : configFromConnections(connections);
   const configured = buildConfiguredProviders(config, { env, ...(options.providerFactories ? { factories: options.providerFactories } : {}), overrides: Object.fromEntries(Object.entries(connections)) });
-  const dialects = { openai: openaiDialect, anthropic: anthropicDialect, ollama: ollamaDialect, jev: jevDialect };
+  const dialects = { openai: openaiDialect, anthropic: anthropicDialect, ollama: ollamaDialect, jev: jevDialect, perplexity: perplexityDialect, mistral: mistralDialect };
   const bridge = createBridge({
     providers: configured.providers,
     dialects,

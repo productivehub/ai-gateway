@@ -107,6 +107,12 @@ describe("JSON startup configuration", () => {
     expect(await (await app.request("/keys")).json()).toMatchObject({ keys: [{ name: "mine", provider: "custom-service", endpoints: { complete: "https://custom.test/chat" } }] });
   });
 
+  it("preserves endpoint metadata for local transports without an HTTP base URL", async () => {
+    const app = createDefaultGateway({ config: { keys: { local: { provider: "local-cli" } } }, env: {},
+      providerFactories: { "local-cli": { endpoints: { allowance: "account/rateLimits/read" }, create: () => ({ complete: async () => { throw new Error("unused"); } }) } } });
+    expect(await (await app.request("/keys")).json()).toMatchObject({ keys: [{ name: "local", endpoints: { allowance: "account/rateLimits/read" } }] });
+  });
+
   it.each([
     null, {}, { keys: {}, unexpected: "secret" }, { keys: {}, defaultKey: "missing" },
     { keys: {}, models: { alias: { key: "missing", model: "model" } } },
