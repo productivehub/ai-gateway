@@ -18,7 +18,7 @@ By default, completions return `BridgeResponse`, with canonical output, token us
 | [Allowance](./Allowance.md) | Remaining balances, plan windows, and optional usage reports |
 | [Costs](./Costs.md) | Optional prices, currencies, and minor units |
 | [API Reference](./API-Reference.md) | Public methods, types, timing, and errors |
-| [Maintaining the Wiki](./Maintaining-the-Wiki.md) | Editing and publishing these pages |
+| [Maintaining the Wiki](./Maintaining-the-Wiki.md) | Editing these pages |
 
 The current implementation supports non-streaming chat and typed Jev evaluations. DeepSeek and Ollama Cloud also report remaining allowance. Supported features depend on the selected provider; unsupported conversions fail explicitly. Streaming, embeddings, automatic retries and fallbacks, response caching, and charge calculation are not implemented.
 
