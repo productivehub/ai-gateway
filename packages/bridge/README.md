@@ -6,9 +6,9 @@ Call any AI model provider through one provider-neutral format. `ai-bridge` sits
 
 Created and maintained by [Segev Shmueli](https://github.com/segevsh) (`@segevsh`) as part of [productiveHub](https://github.com/productivehub).
 
-Browse the [wiki source pages](./docs/wiki/Home.md) for setup, configuration,
-providers, dialects, model discovery, costs, and the API reference. Publication
-instructions are in [Maintaining the Wiki](./docs/wiki/Maintaining-the-Wiki.md).
+Browse the [wiki pages](./docs/wiki/Home.md) for setup, configuration,
+providers, dialects, model discovery, costs, and the API reference. Editing
+guidelines are in [Maintaining the Wiki](./docs/wiki/Maintaining-the-Wiki.md).
 
 ## Getting started
 

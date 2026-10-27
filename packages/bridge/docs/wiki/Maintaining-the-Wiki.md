@@ -6,23 +6,9 @@ The source of this wiki lives in [docs/wiki](https://github.com/productivehub/ai
 
 The maintainer is [Segev Shmueli](https://github.com/segevsh) (`@segevsh`). See [CONTRIBUTING.md](https://github.com/productivehub/ai-gateway/blob/main/packages/bridge/CONTRIBUTING.md), [AUTHORS.md](https://github.com/productivehub/ai-gateway/blob/main/packages/bridge/AUTHORS.md), and the [MIT license](https://github.com/productivehub/ai-gateway/blob/main/packages/bridge/LICENSE).
 
-## Publish to GitHub Wiki
+## Publishing
 
-GitHub stores the published Wiki in a separate Git repository. Its first page must be created using the GitHub Wiki interface before that repository can be cloned. On [the bridge Wiki](https://github.com/productivehub/ai-bridge/wiki), create and save a page named `Home` once. See [GitHub's wiki instructions](https://docs.github.com/en/communities/documenting-your-project-with-wikis/adding-or-editing-wiki-pages).
-
-Once initialized, run these commands from `packages/bridge` in a gateway repository checkout, with write access to the bridge wiki:
-
-```sh
-git clone https://github.com/productivehub/ai-bridge.wiki.git /tmp/productivehub-bridge-wiki
-node scripts/export-wiki.mjs /tmp/productivehub-bridge-wiki
-git -C /tmp/productivehub-bridge-wiki add -- '*.md'
-git -C /tmp/productivehub-bridge-wiki commit -m "Update bridge wiki pages"
-git -C /tmp/productivehub-bridge-wiki push
-```
-
-For an existing wiki checkout, pull its latest changes before exporting. The exporter copies the source Markdown pages, including `_Sidebar.md` and `_Footer.md`, and changes local page links to GitHub Wiki URLs. Source links work in the main repository; exported links work in the Wiki.
-
-The exporter overwrites matching page files in the destination and leaves unrelated files alone. Delete obsolete wiki pages explicitly when removing or renaming a source page. It does not commit or push, and no automatic publishing workflow is configured.
+These pages are read where they live, in the repository; there is no separate GitHub Wiki to export to. Relative links between pages work on GitHub and in any Markdown viewer. The bridge's earlier GitHub Wiki on `productivehub/ai-bridge` was frozen when that repository was archived and is no longer updated.
 
 ## Validate changes
 
