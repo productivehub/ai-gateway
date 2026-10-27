@@ -78,10 +78,9 @@ Provider credentials (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`,
 ## Run from a checkout
 
 ```sh
-git submodule update --init --recursive
 pnpm install
-pnpm --filter @productivehub/ai-gateway-cli... build
-cd oss/ai-gateway/packages/cli
+pnpm build
+cd packages/cli
 cp .env.example .env
 pnpm start                    # serve on Node
 pnpm cli keys                 # any command on Node

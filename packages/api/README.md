@@ -2,7 +2,7 @@
 
 `@productivehub/ai-gateway-api` is the HTTP layer of the
 [productiveHub AI Gateway](../../README.md): an MIT-licensed HTTP wrapper for
-[`@productivehub/ai-bridge`](https://github.com/productivehub/ai-bridge), created and maintained by [Segev Shmueli](https://github.com/segevsh) for
+[`@productivehub/ai-bridge`](https://github.com/productivehub/ai-gateway/tree/main/packages/bridge), created and maintained by [Segev Shmueli](https://github.com/segevsh) for
 [productiveHub](https://github.com/productivehub).
 
 Mount its Hono app inside your existing server, or open a standalone Node or Deno
@@ -19,7 +19,7 @@ curl 'http://127.0.0.1:8787/llama3.2:latest?provider=ollama&dialect=anthropic' \
 ```
 
 `POST /{model}` executes a non-streaming completion. The body is canonical
-[`BridgeInput`](https://github.com/productivehub/ai-bridge/blob/main/src/baseline.ts)
+[`BridgeInput`](https://github.com/productivehub/ai-gateway/blob/main/packages/bridge/src/baseline.ts)
 regardless of the selected response dialect. It supports messages, media, tools,
 reasoning, caching, structured output, runtime options and native extensions.
 The model comes from the path; namespaced IDs such as `org/model:latest` work
@@ -65,7 +65,7 @@ curl 'http://127.0.0.1:8787/jev-latest?provider=jev&dialect=jev' \
   -d '{"messages":[{"role":"user","content":"My payouts have failed for three days."}],"extensions":{"jev":{"questions":{"urgent":{"type":"noul","instructions":"Is this urgent?"}}}}}'
 ```
 
-For object/array state, replace the message's content with `[{ "type": "native", "dialect": "jev", "value": { "state": { "message": "Payment failed" } } }]`. Questions support `noul`, `choice` and `score`; see the [bridge Jev example](https://github.com/productivehub/ai-bridge#jev-typesafe). `dialect=jev` returns native typed answers, probabilities and confidence in `output`; the default bridge dialect returns provider-neutral evaluation blocks in `output.choices[0].message.content` and retains native answers in `output.extensions.jev.answers`. The envelope's `model` remains the requested alias, while the Jev projection's `output.model` reports the resolved version.
+For object/array state, replace the message's content with `[{ "type": "native", "dialect": "jev", "value": { "state": { "message": "Payment failed" } } }]`. Questions support `noul`, `choice` and `score`; see the [bridge Jev example](https://github.com/productivehub/ai-gateway/tree/main/packages/bridge#jev-typesafe). `dialect=jev` returns native typed answers, probabilities and confidence in `output`; the default bridge dialect returns provider-neutral evaluation blocks in `output.choices[0].message.content` and retains native answers in `output.extensions.jev.answers`. The envelope's `model` remains the requested alias, while the Jev projection's `output.model` reports the resolved version.
 
 Named accounts, model aliases and `GET /models` work normally. `GET /allowance` returns 501. Unsupported chat controls or malformed evaluation input return 422 before the provider call. Upstream 429 returns 429 and 529 follows the gateway's provider-failure mapping (502); there are no automatic retries.
 
@@ -231,7 +231,7 @@ curl 'http://127.0.0.1:8787/grok-4.7?provider=xai&dialect=openai' \
   -d '{"messages":[{"role":"user","content":"What is 101*3?"}],"reasoning":{"effort":"low"}}'
 ```
 
-See the [bridge documentation](https://github.com/productivehub/ai-bridge#mistral) for the request mapping and its rejections.
+See the [bridge documentation](https://github.com/productivehub/ai-gateway/tree/main/packages/bridge#mistral) for the request mapping and its rejections.
 
 ## Perplexity Agent API
 
@@ -256,7 +256,7 @@ Named account and model alias configuration:
 }
 ```
 
-Then use `POST /research?dialect=perplexity`, or the CLI with `complete research --input request.json --dialect perplexity`. See [the bridge documentation](https://github.com/productivehub/ai-bridge#perplexity-agent-api) and [Perplexity's API reference](https://docs.perplexity.ai/api-reference/agent-post).
+Then use `POST /research?dialect=perplexity`, or the CLI with `complete research --input request.json --dialect perplexity`. See [the bridge documentation](https://github.com/productivehub/ai-gateway/tree/main/packages/bridge#perplexity-agent-api) and [Perplexity's API reference](https://docs.perplexity.ai/api-reference/agent-post).
 
 ## JSON startup config and named accounts
 
@@ -456,9 +456,9 @@ attach their existing Hono middleware before mounting the app.
 
 ```sh
 pnpm -F @productivehub/ai-gateway-api test
-pnpm -F @productivehub/ai-gateway-api typecheck  # build bridge first on a fresh checkout
+pnpm -F @productivehub/ai-gateway-api typecheck  # builds the bridge first
 pnpm -F @productivehub/ai-gateway-api test:runtime
-cd oss/ai-gateway/packages/api
+cd packages/api
 deno run --allow-net --allow-env --allow-read test/runtime-smoke.ts
 deno check --unstable-sloppy-imports test/runtime-smoke.ts
 ```

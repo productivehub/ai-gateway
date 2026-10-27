@@ -1,0 +1,15 @@
+{
+  "name": "ai-gateway-workspace",
+  "private": true,
+  "description": "productiveHub AI gateway: the bridge, HTTP API and CLI packages",
+  "packageManager": "pnpm@11.24.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint"
+  }
+}

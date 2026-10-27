@@ -1,0 +1,65 @@
+{
+  "name": "@productivehub/ai-bridge",
+  "version": "0.1.0",
+  "description": "Call any AI model provider through one provider-neutral format, with injected providers and typed response dialects",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "author": {
+    "name": "Segev Shmueli",
+    "url": "https://github.com/segevsh"
+  },
+  "contributors": [
+    {
+      "name": "productiveHub",
+      "url": "https://github.com/productivehub"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/productivehub/ai-gateway.git",
+    "directory": "packages/bridge"
+  },
+  "homepage": "https://github.com/productivehub/ai-gateway/tree/main/packages/bridge#readme",
+  "bugs": {
+    "url": "https://github.com/productivehub/ai-gateway/issues"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./providers": {
+      "types": "./dist/providers/index.d.ts",
+      "import": "./dist/providers/index.js"
+    },
+    "./dialects": {
+      "types": "./dist/dialects/index.d.ts",
+      "import": "./dist/dialects/index.js"
+    }
+  },
+  "files": ["dist", "docs", "assets", "README.md", "LICENSE", "AUTHORS.md", "CONTRIBUTING.md"],
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "typecheck": "tsc -b tsconfig.json && tsc -p tsconfig.test.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "echo \"lint: not configured yet\""
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.129.0",
+    "openai": "^7.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^5.0.0"
+  }
+}
